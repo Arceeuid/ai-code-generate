@@ -1,4 +1,4 @@
-package com.arceuid.yuaicodemother.comon;
+package com.arceuid.yuaicodemother.common;
 
 import lombok.Data;
 

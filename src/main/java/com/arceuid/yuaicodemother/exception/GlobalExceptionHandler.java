@@ -1,7 +1,7 @@
 package com.arceuid.yuaicodemother.exception;
 
-import com.arceuid.yuaicodemother.comon.BaseResponse;
-import com.arceuid.yuaicodemother.comon.ResultUtils;
+import com.arceuid.yuaicodemother.common.BaseResponse;
+import com.arceuid.yuaicodemother.common.ResultUtils;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;

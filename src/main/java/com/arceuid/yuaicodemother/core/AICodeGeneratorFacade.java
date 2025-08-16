@@ -1,6 +1,7 @@
 package com.arceuid.yuaicodemother.core;
 
 import com.arceuid.yuaicodemother.ai.AICodeGeneratorService;
+import com.arceuid.yuaicodemother.ai.model.AppNameResult;
 import com.arceuid.yuaicodemother.ai.model.HtmlCodeResult;
 import com.arceuid.yuaicodemother.ai.model.MultiFileCodeResult;
 import com.arceuid.yuaicodemother.core.parser.CodeParserExecutor;
@@ -29,20 +30,21 @@ public class AICodeGeneratorFacade {
      *
      * @param userMessage     用户提示词
      * @param codeGenTypeEnum 代码生成类型
+     * @param appId           应用ID
      * @return 代码文件目录
      */
-    public File generateAndSave(String userMessage, CodeGenTypeEnum codeGenTypeEnum) {
+    public File generateAndSave(String userMessage, CodeGenTypeEnum codeGenTypeEnum, Long appId) {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "代码生成类型不能为空");
         }
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 HtmlCodeResult htmlCodeResult = aiCodeGeneratorService.generateHtmlCode(userMessage);
-                yield CodeFileSaverExecutor.executeSave(htmlCodeResult, codeGenTypeEnum);
+                yield CodeFileSaverExecutor.executeSave(htmlCodeResult, codeGenTypeEnum, appId);
             }
             case MULTI_FILE -> {
                 MultiFileCodeResult multiFileCodeResult = aiCodeGeneratorService.generateMultiFileCode(userMessage);
-                yield CodeFileSaverExecutor.executeSave(multiFileCodeResult, codeGenTypeEnum);
+                yield CodeFileSaverExecutor.executeSave(multiFileCodeResult, codeGenTypeEnum, appId);
             }
             default -> {
                 String errorMessage = "不支持的生成类型：" + codeGenTypeEnum;
@@ -56,20 +58,21 @@ public class AICodeGeneratorFacade {
      *
      * @param userMessage     用户提示词
      * @param codeGenTypeEnum 代码生成类型
+     * @param appId           应用ID
      * @return 代码文件目录
      */
-    public Flux<String> generateAndSaveStream(String userMessage, CodeGenTypeEnum codeGenTypeEnum) {
+    public Flux<String> generateAndSaveStream(String userMessage, CodeGenTypeEnum codeGenTypeEnum, Long appId) {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "代码生成类型不能为空");
         }
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
-                yield processCodeStream(codeStream, codeGenTypeEnum);
+                yield processCodeStream(codeStream, codeGenTypeEnum, appId);
             }
             case MULTI_FILE -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
-                yield processCodeStream(codeStream, codeGenTypeEnum);
+                yield processCodeStream(codeStream, codeGenTypeEnum, appId);
             }
             default -> {
                 String errorMessage = "不支持的生成类型：" + codeGenTypeEnum;
@@ -84,9 +87,10 @@ public class AICodeGeneratorFacade {
      *
      * @param result          代码流
      * @param codeGenTypeEnum 代码生成类型
+     * @param appId           应用ID
      * @return 代码文件目录
      */
-    private Flux<String> processCodeStream(Flux<String> result, CodeGenTypeEnum codeGenTypeEnum) {
+    private Flux<String> processCodeStream(Flux<String> result, CodeGenTypeEnum codeGenTypeEnum, Long appId) {
         //定义一个StringBuilder，用于拼接result流
         StringBuilder stringBuilder = new StringBuilder();
         return result.doOnNext(stringBuilder::append)
@@ -95,12 +99,22 @@ public class AICodeGeneratorFacade {
                         //将StringBuilder转为对象
                         Object parsedCodeResult = CodeParserExecutor.executeParser(stringBuilder.toString(), codeGenTypeEnum);
                         //将对象保存到文件
-                        File saveDir = CodeFileSaverExecutor.executeSave(parsedCodeResult, codeGenTypeEnum);
+                        File saveDir = CodeFileSaverExecutor.executeSave(parsedCodeResult, codeGenTypeEnum, appId);
                         log.info("保存到{}成功", saveDir.getAbsolutePath());
                     } catch (Exception e) {
                         log.error("保存代码失败,{}", e.getMessage());
                         throw new BusinessException(ErrorCode.SYSTEM_ERROR, "保存代码失败");
                     }
                 });
+    }
+
+    /**
+     * 生成应用名称
+     *
+     * @param userMessage 用户提示词
+     * @return 应用名称
+     */
+    public AppNameResult generateAppName(String userMessage) {
+        return aiCodeGeneratorService.generateAppName(userMessage);
     }
 }

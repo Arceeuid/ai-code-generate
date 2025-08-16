@@ -13,7 +13,7 @@ public class MybatisFlexCodeGenerator {
 
     //需要生成的表名
     public static final String[] TABLE_NAMES = {
-            "user"
+            "app"
     };
 
     public static void main(String[] args) {

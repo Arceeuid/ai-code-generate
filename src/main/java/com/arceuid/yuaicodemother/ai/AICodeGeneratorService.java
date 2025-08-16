@@ -1,5 +1,6 @@
 package com.arceuid.yuaicodemother.ai;
 
+import com.arceuid.yuaicodemother.ai.model.AppNameResult;
 import com.arceuid.yuaicodemother.ai.model.HtmlCodeResult;
 import com.arceuid.yuaicodemother.ai.model.MultiFileCodeResult;
 import dev.langchain4j.service.SystemMessage;
@@ -23,6 +24,15 @@ public interface AICodeGeneratorService {
      */
     @SystemMessage(fromResource = "prompt/codegen-multi-file-system-prompt.txt")
     MultiFileCodeResult generateMultiFileCode(String userMessage);
+
+    /**
+     * 生成应用名称
+     *
+     * @param userMessage 用户提示词
+     * @return 应用名称
+     */
+    @SystemMessage(fromResource = "prompt/codegen-app-name-prompt")
+    AppNameResult generateAppName(String userMessage);
 
     /**
      * 生成HTML代码，流式输出

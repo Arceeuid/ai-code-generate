@@ -8,6 +8,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import reactor.core.publisher.Flux;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -68,5 +69,11 @@ public interface AppService extends IService<App> {
      */
     void generateAndUpdateAppName(Long appId);
 
-
+    /**
+     * 删除应用
+     *
+     * @param appId 应用 id
+     * @return 是否删除成功
+     */
+    boolean removeById(Serializable appId);
 }

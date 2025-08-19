@@ -1,6 +1,7 @@
 package com.arceuid.yuaicodemother.core;
 
 import com.arceuid.yuaicodemother.ai.AICodeGeneratorService;
+import com.arceuid.yuaicodemother.ai.AICodeGeneratorServiceFactory;
 import com.arceuid.yuaicodemother.ai.model.AppNameResult;
 import com.arceuid.yuaicodemother.ai.model.HtmlCodeResult;
 import com.arceuid.yuaicodemother.ai.model.MultiFileCodeResult;
@@ -23,7 +24,14 @@ import java.io.File;
 @Slf4j
 public class AICodeGeneratorFacade {
     @Resource
-    private AICodeGeneratorService aiCodeGeneratorService;
+    private AICodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
+
+    /**
+     * 上下文无关的AI代码生成服务
+     */
+    @Resource
+    private AICodeGeneratorService noContextAiCodeGeneratorService;
+
 
     /**
      * 生成并保存代码
@@ -37,6 +45,7 @@ public class AICodeGeneratorFacade {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "代码生成类型不能为空");
         }
+        AICodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 HtmlCodeResult htmlCodeResult = aiCodeGeneratorService.generateHtmlCode(userMessage);
@@ -65,6 +74,7 @@ public class AICodeGeneratorFacade {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "代码生成类型不能为空");
         }
+        AICodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
@@ -115,6 +125,6 @@ public class AICodeGeneratorFacade {
      * @return 应用名称
      */
     public AppNameResult generateAppName(String userMessage) {
-        return aiCodeGeneratorService.generateAppName(userMessage);
+        return noContextAiCodeGeneratorService.generateAppName(userMessage);
     }
 }

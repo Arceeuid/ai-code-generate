@@ -3,7 +3,9 @@ package com.arceuid.yuaicodemother.ai;
 import com.arceuid.yuaicodemother.ai.model.AppNameResult;
 import com.arceuid.yuaicodemother.ai.model.HtmlCodeResult;
 import com.arceuid.yuaicodemother.ai.model.MultiFileCodeResult;
+import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
 public interface AICodeGeneratorService {
@@ -31,7 +33,7 @@ public interface AICodeGeneratorService {
      * @param userMessage 用户提示词
      * @return 应用名称
      */
-    @SystemMessage(fromResource = "prompt/codegen-app-name-prompt")
+    @SystemMessage(fromResource = "prompt/codegen-app-name-prompt.txt")
     AppNameResult generateAppName(String userMessage);
 
     /**
@@ -51,4 +53,13 @@ public interface AICodeGeneratorService {
      */
     @SystemMessage(fromResource = "prompt/codegen-multi-file-system-prompt.txt")
     Flux<String> generateMultiFileCodeStream(String userMessage);
+
+    /**
+     * 生成Vue项目代码
+     *
+     * @param userMessage 用户提示词
+     * @return 代码
+     */
+    @SystemMessage(fromResource = "prompt/codegen-vue-project-system-prompt.txt")
+    Flux<String> generateVueProjectCodeStream(@MemoryId Long appId, @UserMessage String userMessage);
 }

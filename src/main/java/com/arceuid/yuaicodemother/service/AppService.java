@@ -29,6 +29,14 @@ public interface AppService extends IService<App> {
     String deployApp(Long appId, User loginUser);
 
     /**
+     * 异步生成截图并上传到COS
+     *
+     * @param appId 应用id
+     * @param url   应用部署地址
+     */
+    void generateAndUploadScreenShotAsync(Long appId, String url);
+
+    /**
      * 构造应用查询条件
      *
      * @param request 查询请求

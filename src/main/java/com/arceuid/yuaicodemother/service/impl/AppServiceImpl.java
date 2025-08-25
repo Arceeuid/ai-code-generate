@@ -7,6 +7,8 @@ import cn.hutool.core.util.RandomUtil;
 import com.arceuid.yuaicodemother.ai.model.AppNameResult;
 import com.arceuid.yuaicodemother.constant.AppConstant;
 import com.arceuid.yuaicodemother.core.AICodeGeneratorFacade;
+import com.arceuid.yuaicodemother.core.builder.VueProjectBuilder;
+import com.arceuid.yuaicodemother.core.handler.StreamHandlerExecutor;
 import com.arceuid.yuaicodemother.exception.BusinessException;
 import com.arceuid.yuaicodemother.exception.ErrorCode;
 import com.arceuid.yuaicodemother.exception.ThrowUtils;
@@ -20,6 +22,7 @@ import com.arceuid.yuaicodemother.model.vo.AppVO;
 import com.arceuid.yuaicodemother.model.vo.UserVO;
 import com.arceuid.yuaicodemother.service.AppService;
 import com.arceuid.yuaicodemother.service.ChatHistoryService;
+import com.arceuid.yuaicodemother.service.ScreenShotService;
 import com.arceuid.yuaicodemother.service.UserService;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
@@ -60,6 +63,15 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private ChatHistoryService chatHistoryService;
 
+    @Resource
+    private StreamHandlerExecutor streamHandlerExecutor;
+
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
+
+    @Resource
+    private ScreenShotService screenShotService;
+
     /**
      * 通过对话生成应用代码
      *
@@ -88,22 +100,16 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
         //4.获取生成的应用类型
         CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(app.getCodeGenType());
+        if (codeGenTypeEnum == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "应用类型不存在");
+        }
 
         //5.保存用户消息到数据库
         chatHistoryService.addChatMessage(appId, loginUser.getId(), message, ChatHistoryMessageTypeEnum.USER.getValue());
 
         //6.生成并收集AI返回的代码流
         Flux<String> contentFlux = aiCodeGeneratorFacade.generateAndSaveStream(message, codeGenTypeEnum, appId);
-        StringBuilder stringBuilder = new StringBuilder();
-        return contentFlux.map((chunk) -> {
-            stringBuilder.append(chunk);
-            return chunk;
-        }).doOnComplete(() -> {
-            chatHistoryService.addChatMessage(appId, loginUser.getId(), stringBuilder.toString(), ChatHistoryMessageTypeEnum.AI.getValue());
-        }).doOnError((error) -> {
-            String errorMsg = "AI回复失败:" + error.getMessage();
-            chatHistoryService.addChatMessage(appId, loginUser.getId(), errorMsg, ChatHistoryMessageTypeEnum.AI.getValue());
-        });
+        return streamHandlerExecutor.doExecute(contentFlux, chatHistoryService, appId, loginUser, codeGenTypeEnum);
 
     }
 
@@ -152,7 +158,21 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用代码目录不存在");
         }
 
-        //7.复制文件到部署目录
+        //7.对Vue项目进行构建
+        if (codeGenType.equals(CodeGenTypeEnum.VUE_PROJECT.getValue())) {
+            boolean buildResult = vueProjectBuilder.buildProject(sourceDirPath);
+            if (!buildResult) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用构建失败，请稍后重试");
+            }
+            File dist = new File(sourceDirPath + File.separator + "dist");
+            //检查dist目录是否正常生成
+            if (!dist.exists() || !dist.isDirectory()) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用构建失败，请稍后重试");
+            }
+            sourceDir = dist;
+        }
+
+        //8.复制文件到部署目录
         String deployDirPath = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey;
         try {
             FileUtil.copyContent(sourceDir, new File(deployDirPath), true);
@@ -160,14 +180,38 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用部署失败，请稍后重试");
         }
 
-        //8.更新数据库
+        //9.更新数据库
         app.setDeployKey(deployKey);
         app.setDeployedTime(LocalDateTime.now());
         boolean updateSuccess = updateById(app);
         ThrowUtils.throwIf(!updateSuccess, ErrorCode.OPERATION_ERROR, "更新应用信息失败");
 
-        //9.返回部署地址
-        return AppConstant.CODE_DEPLOY_HOST + File.separator + deployKey;
+        //10.得到部署地址
+        String deployUrl = AppConstant.CODE_DEPLOY_HOST + File.separator + deployKey;
+
+        //11.异步生成截图
+        generateAndUploadScreenShotAsync(appId, deployUrl);
+
+        //12.返回部署地址
+        return deployUrl;
+    }
+
+    /**
+     * 异步生成截图并上传到COS
+     *
+     * @param appId 应用id
+     * @param url   应用部署地址
+     */
+    @Override
+    public void generateAndUploadScreenShotAsync(Long appId, String url) {
+        Thread.startVirtualThread(() -> {
+            String cosUrl = screenShotService.generateAndUploadScreenShot(url);
+
+            App newApp = new App();
+            newApp.setId(appId);
+            newApp.setCover(cosUrl);
+            updateById(newApp);
+        });
     }
 
     /**

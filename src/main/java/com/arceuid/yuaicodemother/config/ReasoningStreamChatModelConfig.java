@@ -15,12 +15,11 @@ public class ReasoningStreamChatModelConfig {
     private String baseUrl;
 
     private String apiKey;
-    /*  生成环境使用
 
-        private final String MODEL_NAME = "deepseek-reasoner";
+//    private String MODEL_NAME = "deepseek-reasoner";
+//
+//    private int MAX_TOKENS = 32768;
 
-        private final int MAX_TOKENS = 32768;
-    */
     private final String MODEL_NAME = "deepseek-chat";
 
     private final int MAX_TOKENS = 8192;

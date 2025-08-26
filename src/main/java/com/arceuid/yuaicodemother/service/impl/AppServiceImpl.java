@@ -4,6 +4,8 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
+import com.arceuid.yuaicodemother.ai.AICodeGenTypeRouterService;
 import com.arceuid.yuaicodemother.ai.model.AppNameResult;
 import com.arceuid.yuaicodemother.constant.AppConstant;
 import com.arceuid.yuaicodemother.core.AICodeGeneratorFacade;
@@ -13,6 +15,7 @@ import com.arceuid.yuaicodemother.exception.BusinessException;
 import com.arceuid.yuaicodemother.exception.ErrorCode;
 import com.arceuid.yuaicodemother.exception.ThrowUtils;
 import com.arceuid.yuaicodemother.mapper.AppMapper;
+import com.arceuid.yuaicodemother.model.dto.app.AppAddRequest;
 import com.arceuid.yuaicodemother.model.dto.app.AppQueryRequest;
 import com.arceuid.yuaicodemother.model.entity.App;
 import com.arceuid.yuaicodemother.model.entity.User;
@@ -71,6 +74,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private ScreenShotService screenShotService;
+
+    @Resource
+    private AICodeGenTypeRouterService aiCodeGenTypeRouterService;
 
     /**
      * 通过对话生成应用代码
@@ -194,6 +200,42 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
         //12.返回部署地址
         return deployUrl;
+    }
+
+    /**
+     * 添加应用
+     *
+     * @param appAddRequest 添加应用请求
+     * @param loginUser     登录用户
+     * @return 应用id
+     */
+    @Override
+    public Long addApp(AppAddRequest appAddRequest, User loginUser) {
+        // 参数校验
+        String initPrompt = appAddRequest.getInitPrompt();
+        ThrowUtils.throwIf(StrUtil.isBlank(initPrompt), ErrorCode.PARAMS_ERROR, "初始化 prompt 不能为空");
+
+        // 构造入库对象
+        App app = new App();
+        BeanUtil.copyProperties(appAddRequest, app);
+        app.setUserId(loginUser.getId());
+
+        // 应用名称暂时为 initPrompt 前 12 位
+        app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
+
+        //获取应用类型
+        CodeGenTypeEnum selectCodeGenTypeEnum = aiCodeGenTypeRouterService.routeCodeGenType(initPrompt);
+        app.setCodeGenType(selectCodeGenTypeEnum.getValue());
+
+        // 插入数据库
+        boolean result = save(app);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+
+        // 异步生成并更新应用名称
+        generateAndUpdateAppName(app.getId());
+
+        //返回应用id
+        return app.getId();
     }
 
     /**

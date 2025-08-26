@@ -1,8 +1,8 @@
 package com.arceuid.yuaicodemother.controller;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import com.arceuid.yuaicodemother.ai.AICodeGenTypeRouterService;
 import com.arceuid.yuaicodemother.annotation.AuthCheck;
 import com.arceuid.yuaicodemother.common.BaseResponse;
 import com.arceuid.yuaicodemother.common.DeleteRequest;
@@ -15,20 +15,22 @@ import com.arceuid.yuaicodemother.exception.ThrowUtils;
 import com.arceuid.yuaicodemother.model.dto.app.*;
 import com.arceuid.yuaicodemother.model.entity.App;
 import com.arceuid.yuaicodemother.model.entity.User;
-import com.arceuid.yuaicodemother.model.enums.CodeGenTypeEnum;
 import com.arceuid.yuaicodemother.model.vo.AppVO;
 import com.arceuid.yuaicodemother.service.AppService;
+import com.arceuid.yuaicodemother.service.ProjectDownloadService;
 import com.arceuid.yuaicodemother.service.UserService;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +48,12 @@ public class AppController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private ProjectDownloadService projectDownloadService;
+
+    @Resource
+    private AICodeGenTypeRouterService aiCodeGenTypeRouterService;
 
 
     /**
@@ -117,27 +125,47 @@ public class AppController {
     @PostMapping("/add")
     public BaseResponse<Long> addApp(@RequestBody AppAddRequest appAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(appAddRequest == null, ErrorCode.PARAMS_ERROR);
-        // 参数校验
-        String initPrompt = appAddRequest.getInitPrompt();
-        ThrowUtils.throwIf(StrUtil.isBlank(initPrompt), ErrorCode.PARAMS_ERROR, "初始化 prompt 不能为空");
-        // 获取当前登录用户
+
+        //获取当前登录用户
         User loginUser = userService.getLoginUser(request);
-        // 构造入库对象
-        App app = new App();
-        BeanUtil.copyProperties(appAddRequest, app);
-        app.setUserId(loginUser.getId());
-        // 应用名称暂时为 initPrompt 前 12 位
-        app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
-        //TODO 暂时设置为多文件生成
-        app.setCodeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue());
-        // 插入数据库
-        boolean result = appService.save(app);
-        // 异步生成并更新应用名称
-        appService.generateAndUpdateAppName(app.getId());
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        return ResultUtils.success(app.getId());
+
+        //添加应用
+        Long appId = appService.addApp(appAddRequest, loginUser);
+
+        return ResultUtils.success(appId);
     }
 
+    /**
+     * 下载应用代码
+     *
+     * @param appId    应用id
+     * @param request  请求
+     * @param response 响应
+     */
+    @GetMapping("download/{appId}")
+    public void downloadAppCode(@PathVariable Long appId, HttpServletRequest request, HttpServletResponse response) {
+        // 校验参数
+        ThrowUtils.throwIf(appId == null, ErrorCode.PARAMS_ERROR, "应用不能为空");
+
+        //校验应用是否存在
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+
+        //校验应用创建者是否是本人
+        User loginUser = userService.getLoginUser(request);
+        ThrowUtils.throwIf(!app.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "应用创建者不是当前用户");
+
+        //构建应用路径
+        String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + app.getCodeGenType() + "_" + app.getId();
+
+        //检查应用路径是否存在
+        File projectDir = new File(projectPath);
+        ThrowUtils.throwIf(!projectDir.exists(), ErrorCode.NOT_FOUND_ERROR, "应用路径不存在");
+
+        // 下载项目代码
+        String downloadFileName = appId.toString();
+        projectDownloadService.downloadProjectAsZip(projectPath, downloadFileName, response);
+    }
 
     /**
      * 更新应用（用户只能更新自己的应用名称）

@@ -1,5 +1,6 @@
 package com.arceuid.yuaicodemother.service;
 
+import com.arceuid.yuaicodemother.model.dto.app.AppAddRequest;
 import com.arceuid.yuaicodemother.model.dto.app.AppQueryRequest;
 import com.arceuid.yuaicodemother.model.entity.App;
 import com.arceuid.yuaicodemother.model.entity.User;
@@ -27,6 +28,15 @@ public interface AppService extends IService<App> {
      * @return 可访问的部署地址
      */
     String deployApp(Long appId, User loginUser);
+
+    /**
+     * 添加应用
+     *
+     * @param appAddRequest 添加应用请求
+     * @param loginUser     登录用户
+     * @return 应用id
+     */
+    Long addApp(AppAddRequest appAddRequest, User loginUser);
 
     /**
      * 异步生成截图并上传到COS

@@ -1,6 +1,6 @@
 package com.arceuid.yuaicodemother.ai;
 
-import com.arceuid.yuaicodemother.ai.tools.FileWriteTool;
+import com.arceuid.yuaicodemother.ai.tools.ToolManager;
 import com.arceuid.yuaicodemother.exception.BusinessException;
 import com.arceuid.yuaicodemother.exception.ErrorCode;
 import com.arceuid.yuaicodemother.model.enums.CodeGenTypeEnum;
@@ -43,6 +43,9 @@ public class AICodeGeneratorServiceFactory {
 
     @Resource
     private ChatHistoryService chatHistoryService;
+
+    @Resource
+    private ToolManager toolManager;
 
 
     /**
@@ -118,7 +121,7 @@ public class AICodeGeneratorServiceFactory {
                     .chatModel(chatModel)
                     .streamingChatModel(reasoningStreamChatModel)
                     .chatMemoryProvider(memoryId -> messageWindowChatMemory)
-                    .tools(new FileWriteTool())
+                    .tools(toolManager.getAllTools())
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(toolExecutionRequest, "Error,cannot find such tool called " + toolExecutionRequest.name()))
                     .build();
 

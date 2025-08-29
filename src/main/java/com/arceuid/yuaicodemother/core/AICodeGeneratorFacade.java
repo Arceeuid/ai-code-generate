@@ -3,6 +3,7 @@ package com.arceuid.yuaicodemother.core;
 import cn.hutool.json.JSONUtil;
 import com.arceuid.yuaicodemother.ai.AICodeGeneratorService;
 import com.arceuid.yuaicodemother.ai.AICodeGeneratorServiceFactory;
+import com.arceuid.yuaicodemother.ai.AICodeNameGeneratorService;
 import com.arceuid.yuaicodemother.ai.model.AppNameResult;
 import com.arceuid.yuaicodemother.ai.model.HtmlCodeResult;
 import com.arceuid.yuaicodemother.ai.model.MultiFileCodeResult;
@@ -30,14 +31,18 @@ import java.io.File;
 @Service
 @Slf4j
 public class AICodeGeneratorFacade {
+
+    /**
+     * 代码生成服务工厂
+     */
     @Resource
     private AICodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
 
     /**
-     * 上下文无关的AI代码生成服务
+     * 生成应用名称AI服务
      */
     @Resource
-    private AICodeGeneratorService noContextAiCodeGeneratorService;
+    private AICodeNameGeneratorService aiCodeNameGeneratorService;
 
 
     /**
@@ -167,6 +172,6 @@ public class AICodeGeneratorFacade {
      * @return 应用名称
      */
     public AppNameResult generateAppName(String userMessage) {
-        return noContextAiCodeGeneratorService.generateAppName(userMessage);
+        return aiCodeNameGeneratorService.generateAppName(userMessage);
     }
 }

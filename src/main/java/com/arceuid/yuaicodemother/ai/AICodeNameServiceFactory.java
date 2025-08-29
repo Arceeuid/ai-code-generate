@@ -1,20 +1,19 @@
-package com.arceuid.yuaicodemother.langgraph4j.ai;
+package com.arceuid.yuaicodemother.ai;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
-@Configuration
-public class ImageCollectionPlanServiceFactory {
-
+@Component
+public class AICodeNameServiceFactory {
     @Resource(name = "openAiChatModel")
     private ChatModel chatModel;
 
     @Bean
-    public ImageCollectionPlanService createImageCollectionPlanService() {
-        return AiServices.builder(ImageCollectionPlanService.class)
+    public AICodeNameGeneratorService aiCodeNameGeneratorService() {
+        return AiServices.builder(AICodeNameGeneratorService.class)
                 .chatModel(chatModel)
                 .build();
     }

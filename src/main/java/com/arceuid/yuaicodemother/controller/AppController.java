@@ -2,7 +2,6 @@ package com.arceuid.yuaicodemother.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
-import com.arceuid.yuaicodemother.ai.AICodeGenTypeRouterService;
 import com.arceuid.yuaicodemother.annotation.AuthCheck;
 import com.arceuid.yuaicodemother.common.BaseResponse;
 import com.arceuid.yuaicodemother.common.DeleteRequest;
@@ -51,9 +50,6 @@ public class AppController {
 
     @Resource
     private ProjectDownloadService projectDownloadService;
-
-    @Resource
-    private AICodeGenTypeRouterService aiCodeGenTypeRouterService;
 
 
     /**

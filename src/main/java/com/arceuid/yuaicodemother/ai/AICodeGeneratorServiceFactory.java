@@ -5,6 +5,7 @@ import com.arceuid.yuaicodemother.exception.BusinessException;
 import com.arceuid.yuaicodemother.exception.ErrorCode;
 import com.arceuid.yuaicodemother.model.enums.CodeGenTypeEnum;
 import com.arceuid.yuaicodemother.service.ChatHistoryService;
+import com.arceuid.yuaicodemother.utils.SpringContextUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
@@ -29,14 +30,8 @@ import java.util.List;
 @Slf4j
 public class AICodeGeneratorServiceFactory {
 
-    @Resource
+    @Resource(name = "openAiChatModel")
     private ChatModel chatModel;
-
-    @Resource
-    private StreamingChatModel openAiStreamingChatModel;
-
-    @Resource
-    private StreamingChatModel reasoningStreamChatModel;
 
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
@@ -117,20 +112,28 @@ public class AICodeGeneratorServiceFactory {
         //根据代码生成类型创建AI服务
         return switch (codeGenTypeEnum) {
             //vue项目模式
-            case VUE_PROJECT -> AiServices.builder(AICodeGeneratorService.class)
-                    .chatModel(chatModel)
-                    .streamingChatModel(reasoningStreamChatModel)
-                    .chatMemoryProvider(memoryId -> messageWindowChatMemory)
-                    .tools(toolManager.getAllTools())
-                    .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(toolExecutionRequest, "Error,cannot find such tool called " + toolExecutionRequest.name()))
-                    .build();
+            case VUE_PROJECT -> {
+                //使用多例模式的ChatModel解决并发问题
+                StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
+                yield AiServices.builder(AICodeGeneratorService.class)
+                        .chatModel(chatModel)
+                        .streamingChatModel(reasoningStreamingChatModel)
+                        .chatMemoryProvider(memoryId -> messageWindowChatMemory)
+                        .tools(toolManager.getAllTools())
+                        .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(toolExecutionRequest, "Error,cannot find such tool called " + toolExecutionRequest.name()))
+                        .build();
+            }
 
             //html和多文件模式
-            case HTML, MULTI_FILE -> AiServices.builder(AICodeGeneratorService.class)
-                    .chatModel(chatModel)
-                    .streamingChatModel(openAiStreamingChatModel)
-                    .chatMemory(messageWindowChatMemory)
-                    .build();
+            case HTML, MULTI_FILE -> {
+                //使用多例模式的ChatModel解决并发问题
+                StreamingChatModel streamingChatModel = SpringContextUtil.getBean("streamingChatModelPrototype", StreamingChatModel.class);
+                yield AiServices.builder(AICodeGeneratorService.class)
+                        .chatModel(chatModel)
+                        .streamingChatModel(streamingChatModel)
+                        .chatMemory(messageWindowChatMemory)
+                        .build();
+            }
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码参数类型: " + codeGenTypeEnum);
         };
     }
@@ -141,21 +144,6 @@ public class AICodeGeneratorServiceFactory {
         return getAiCodeGeneratorService(0);
     }
 
-    /**
-     * 上下文无关Ai服务
-     *
-     * @return 上下文无关Ai服务
-     */
-    @Bean
-    public AICodeGeneratorService noContextAiCodeGeneratorService() {
-        log.info("创建上下文无关Ai服务");
-        return AiServices.builder(AICodeGeneratorService.class)
-                .chatModel(chatModel)
-                .streamingChatModel(openAiStreamingChatModel)
-                //使用自定义的NoopChatMemory
-                .chatMemory(NoopChatMemory.getInstance())
-                .build();
-    }
 
     /**
      * 构建缓存Key

@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import com.arceuid.yuaicodemother.ai.AICodeGenTypeRouterFactory;
 import com.arceuid.yuaicodemother.ai.AICodeGenTypeRouterService;
 import com.arceuid.yuaicodemother.ai.model.AppNameResult;
 import com.arceuid.yuaicodemother.constant.AppConstant;
@@ -76,7 +77,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private ScreenShotService screenShotService;
 
     @Resource
-    private AICodeGenTypeRouterService aiCodeGenTypeRouterService;
+    private AICodeGenTypeRouterFactory aiCodeGenTypeRouterFactory;
 
     /**
      * 通过对话生成应用代码
@@ -224,6 +225,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
 
         //获取应用类型
+        AICodeGenTypeRouterService aiCodeGenTypeRouterService = aiCodeGenTypeRouterFactory.createAiCodeGenTypeRouterService();
         CodeGenTypeEnum selectCodeGenTypeEnum = aiCodeGenTypeRouterService.routeCodeGenType(initPrompt);
         app.setCodeGenType(selectCodeGenTypeEnum.getValue());
 

@@ -1,5 +1,6 @@
 package com.arceuid.yuaicodemother.ai;
 
+import com.arceuid.yuaicodemother.ai.guardrail.PromptSafetyInputGuardrail;
 import com.arceuid.yuaicodemother.utils.SpringContextUtil;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
@@ -23,6 +24,7 @@ public class AICodeGenTypeRouterFactory {
         ChatModel chatModel = SpringContextUtil.getBean("routingChatModelPrototype", ChatModel.class);
         return AiServices.builder(AICodeGenTypeRouterService.class)
                 .chatModel(chatModel)
+                .inputGuardrails(new PromptSafetyInputGuardrail())
                 .build();
     }
 

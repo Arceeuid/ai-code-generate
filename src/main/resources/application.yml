@@ -13,6 +13,8 @@ spring:
       host: localhost
       port: 6379
       ttl: 3600
+      password:
+      database: 0
   # session
   session:
     store-type: redis

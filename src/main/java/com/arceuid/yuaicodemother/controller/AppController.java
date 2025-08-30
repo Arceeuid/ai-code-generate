@@ -63,7 +63,7 @@ public class AppController {
      * @param request 请求
      * @return 代码
      */
-    @RateLimit(rate = 5, rateInterval = 60, limitType = RateLimitType.USER)
+    @RateLimit(rate = 10, rateInterval = 60, limitType = RateLimitType.USER)
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
                                                        @RequestParam String message,
@@ -123,7 +123,7 @@ public class AppController {
      * @return 应用 id
      */
     @PostMapping("/add")
-    @RateLimit(rate = 5, rateInterval = 60, limitType = RateLimitType.USER)
+    @RateLimit(rate = 10, rateInterval = 60, limitType = RateLimitType.USER)
     public BaseResponse<Long> addApp(@RequestBody AppAddRequest appAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(appAddRequest == null, ErrorCode.PARAMS_ERROR);
 

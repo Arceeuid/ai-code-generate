@@ -1,5 +1,6 @@
 package com.arceuid.yuaicodemother.ai;
 
+import com.arceuid.yuaicodemother.ai.guardrail.PromptSafetyInputGuardrail;
 import com.arceuid.yuaicodemother.ai.tools.ToolManager;
 import com.arceuid.yuaicodemother.exception.BusinessException;
 import com.arceuid.yuaicodemother.exception.ErrorCode;
@@ -117,6 +118,7 @@ public class AICodeGeneratorServiceFactory {
                         .chatModel(chatModel)
                         .streamingChatModel(reasoningStreamingChatModel)
                         .chatMemoryProvider(memoryId -> messageWindowChatMemory)
+                        .inputGuardrails(new PromptSafetyInputGuardrail())
                         .tools(toolManager.getAllTools())
                         .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(toolExecutionRequest, "Error,cannot find such tool called " + toolExecutionRequest.name()))
                         .build();
@@ -129,6 +131,7 @@ public class AICodeGeneratorServiceFactory {
                 yield AiServices.builder(AICodeGeneratorService.class)
                         .chatModel(chatModel)
                         .streamingChatModel(streamingChatModel)
+                        .inputGuardrails(new PromptSafetyInputGuardrail())
                         .chatMemory(messageWindowChatMemory)
                         .build();
             }

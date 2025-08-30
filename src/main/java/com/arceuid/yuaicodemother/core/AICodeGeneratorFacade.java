@@ -4,6 +4,7 @@ import cn.hutool.json.JSONUtil;
 import com.arceuid.yuaicodemother.ai.AICodeGeneratorService;
 import com.arceuid.yuaicodemother.ai.AICodeGeneratorServiceFactory;
 import com.arceuid.yuaicodemother.ai.AICodeNameGeneratorService;
+import com.arceuid.yuaicodemother.ai.AICodeNameServiceFactory;
 import com.arceuid.yuaicodemother.ai.model.AppNameResult;
 import com.arceuid.yuaicodemother.ai.model.HtmlCodeResult;
 import com.arceuid.yuaicodemother.ai.model.MultiFileCodeResult;
@@ -40,11 +41,8 @@ public class AICodeGeneratorFacade {
     @Resource
     private AICodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
 
-    /**
-     * 生成应用名称AI服务
-     */
     @Resource
-    private AICodeNameGeneratorService aiCodeNameGeneratorService;
+    private AICodeNameServiceFactory aiCodeNameServiceFactory;
 
     @Resource
     private VueProjectBuilder vueProjectBuilder;
@@ -181,6 +179,7 @@ public class AICodeGeneratorFacade {
      * @return 应用名称
      */
     public AppNameResult generateAppName(String userMessage) {
+        AICodeNameGeneratorService aiCodeNameGeneratorService = aiCodeNameServiceFactory.createAiCodeNameGeneratorService();
         return aiCodeNameGeneratorService.generateAppName(userMessage);
     }
 }

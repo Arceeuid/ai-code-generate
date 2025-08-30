@@ -15,6 +15,8 @@ import com.arceuid.yuaicodemother.model.dto.app.*;
 import com.arceuid.yuaicodemother.model.entity.App;
 import com.arceuid.yuaicodemother.model.entity.User;
 import com.arceuid.yuaicodemother.model.vo.AppVO;
+import com.arceuid.yuaicodemother.ratelimter.annatation.RateLimit;
+import com.arceuid.yuaicodemother.ratelimter.enums.RateLimitType;
 import com.arceuid.yuaicodemother.service.AppService;
 import com.arceuid.yuaicodemother.service.ProjectDownloadService;
 import com.arceuid.yuaicodemother.service.UserService;
@@ -23,6 +25,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -60,6 +63,7 @@ public class AppController {
      * @param request 请求
      * @return 代码
      */
+    @RateLimit(rate = 5, rateInterval = 60, limitType = RateLimitType.USER)
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
                                                        @RequestParam String message,
@@ -119,6 +123,7 @@ public class AppController {
      * @return 应用 id
      */
     @PostMapping("/add")
+    @RateLimit(rate = 5, rateInterval = 60, limitType = RateLimitType.USER)
     public BaseResponse<Long> addApp(@RequestBody AppAddRequest appAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(appAddRequest == null, ErrorCode.PARAMS_ERROR);
 
@@ -271,6 +276,11 @@ public class AppController {
      * @param appQueryRequest 查询请求
      * @return 精选应用列表
      */
+    @Cacheable(
+            value = "good_app_page",
+            key = "T(com.arceuid.yuaicodemother.utils.CacheKeyUtils).getCacheKey(#appQueryRequest)",
+            condition = "#appQueryRequest.getPageNum() <= 10"
+    )
     @PostMapping("/good/list/page/vo")
     public BaseResponse<Page<AppVO>> listGoodAppVOByPage(@RequestBody AppQueryRequest appQueryRequest) {
         ThrowUtils.throwIf(appQueryRequest == null, ErrorCode.PARAMS_ERROR);

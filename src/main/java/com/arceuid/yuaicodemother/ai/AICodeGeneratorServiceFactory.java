@@ -9,7 +9,6 @@ import com.arceuid.yuaicodemother.utils.SpringContextUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
-import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
@@ -21,7 +20,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.List;
 
 /**
  * AI服务创建工厂
@@ -78,16 +76,16 @@ public class AICodeGeneratorServiceFactory {
      */
     public AICodeGeneratorService getAiCodeGeneratorService(long appId, CodeGenTypeEnum codeGenTypeEnum) {
 
-        //判断Redis中Key为appId的数据是否过期
-        List<ChatMessage> chatList = redisChatMemoryStore.getMessages(appId);
+//        //判断Redis中Key为appId的数据是否过期
+//        List<ChatMessage> chatList = redisChatMemoryStore.getMessages(appId);
 
         //构造缓存Key
         String cacheKey = buildCacheKey(appId, codeGenTypeEnum);
 
-        //当Redis中数据不存在时，清理缓存
-        if (chatList == null || chatList.isEmpty()) {
-            serviceCache.invalidate(cacheKey);
-        }
+//        //当Redis中数据不存在时，清理缓存
+//        if (chatList == null || chatList.isEmpty()) {
+//            serviceCache.invalidate(cacheKey);
+//        }
 
         return serviceCache.get(cacheKey, key -> createAiCodeGeneratorService(appId, codeGenTypeEnum));
     }

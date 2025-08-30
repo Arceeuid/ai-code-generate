@@ -6,8 +6,6 @@ import cn.hutool.json.JSONUtil;
 import com.arceuid.yuaicodemother.ai.model.message.*;
 import com.arceuid.yuaicodemother.ai.tools.BaseTool;
 import com.arceuid.yuaicodemother.ai.tools.ToolManager;
-import com.arceuid.yuaicodemother.constant.AppConstant;
-import com.arceuid.yuaicodemother.core.builder.VueProjectBuilder;
 import com.arceuid.yuaicodemother.model.entity.User;
 import com.arceuid.yuaicodemother.model.enums.ChatHistoryMessageTypeEnum;
 import com.arceuid.yuaicodemother.service.ChatHistoryService;
@@ -16,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
-import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -27,9 +24,6 @@ import java.util.Set;
 @Slf4j
 @Component
 public class JsonMessageStreamHandler {
-
-    @Resource
-    private VueProjectBuilder vueProjectBuilder;
 
     @Resource
     private ToolManager toolManager;
@@ -61,10 +55,6 @@ public class JsonMessageStreamHandler {
                     // 流式响应完成后，添加 AI 消息到对话历史
                     String aiResponse = chatHistoryStringBuilder.toString();
                     chatHistoryService.addChatMessage(appId, loginUser.getId(), aiResponse, ChatHistoryMessageTypeEnum.AI.getValue());
-
-                    //异步构建Vue项目
-                    String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
-                    vueProjectBuilder.buildProjectAsync(projectPath);
                 })
                 .doOnError(error -> {
                     // 如果AI回复失败，也要记录错误消息

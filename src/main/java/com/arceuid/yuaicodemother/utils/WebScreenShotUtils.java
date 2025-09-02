@@ -51,6 +51,7 @@ public class WebScreenShotUtils {
         }
         try {
             //创建截图保存的临时目录
+            log.info("开始保存网页截图,URL:{}", WebUrl);
             String rootPath = System.getProperty("user.dir") + File.separator + "tmp" + File.separator + "screenshots" +
                     File.separator + UUID.randomUUID().toString().substring(0, 8);
             FileUtil.mkdir(rootPath);

@@ -32,6 +32,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -78,6 +79,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private AICodeGenTypeRouterFactory aiCodeGenTypeRouterFactory;
+
+    @Value(value = "${code.deploy-host:http://localhost}")
+    private String deployHost;
 
     /**
      * 通过对话生成应用代码
@@ -194,7 +198,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         ThrowUtils.throwIf(!updateSuccess, ErrorCode.OPERATION_ERROR, "更新应用信息失败");
 
         //10.得到部署地址
-        String deployUrl = AppConstant.CODE_DEPLOY_HOST + File.separator + deployKey;
+        String deployUrl = String.format("%s/%s/", deployHost, deployKey);
 
         //11.异步生成截图
         generateAndUploadScreenShotAsync(appId, deployUrl);

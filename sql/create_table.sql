@@ -1,10 +1,10 @@
 # 数据库初始化
 
 -- 创建库
-create database if not exists yu_ai_code_mother;
+create database if not exists code_arc;
 
 -- 切换库
-use yu_ai_code_mother;
+use code_arc;
 
 -- 用户表
 -- 以下是建表语句

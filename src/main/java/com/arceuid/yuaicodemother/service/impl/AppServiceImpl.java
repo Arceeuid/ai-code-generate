@@ -43,7 +43,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 /**
@@ -61,9 +60,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private AICodeGeneratorFacade aiCodeGeneratorFacade;
-
-    @Resource
-    ExecutorService executorService;
 
     @Resource
     private ChatHistoryService chatHistoryService;
@@ -348,16 +344,22 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      *
      * @param appId 应用 id
      */
+    @Override
     public void generateAndUpdateAppName(Long appId) {
         App app = getById(appId);
         if (app == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用不存在");
         }
-        executorService.submit(() -> {
-            AppNameResult appNameResult = aiCodeGeneratorFacade.generateAppName(app.getInitPrompt());
-            app.setAppName(appNameResult.getAppName());
-            boolean updateSuccess = updateById(app);
-            ThrowUtils.throwIf(!updateSuccess, ErrorCode.OPERATION_ERROR, "更新应用信息失败");
+        //开启虚拟线程异步获取应用名称并保存到数据库
+        Thread.startVirtualThread(() -> {
+            try {  // 异常捕获
+                AppNameResult appNameResult = aiCodeGeneratorFacade.generateAppName(app.getInitPrompt());
+                app.setAppName(appNameResult.getAppName());
+                boolean updateSuccess = updateById(app);
+                ThrowUtils.throwIf(!updateSuccess, ErrorCode.OPERATION_ERROR, "更新应用信息失败");
+            } catch (Exception e) {  // 捕获所有可能的异常
+                log.error("生成应用名称失败，appId: {}", appId, e);  // 记录异常日志便于排查
+            }
         });
     }
 

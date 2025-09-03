@@ -100,8 +100,13 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
             //清空chatMemory，防止重复加载
             chatMemory.clear();
 
+            //过滤掉所有AI返回的修改消息
+            List<ChatHistory> filtedList = chatHistoryList.stream()
+                    .filter(chatHistory -> chatHistory.getMessageType().equals(ChatHistoryMessageTypeEnum.USER.getValue()) || !chatHistory.getMessage().contains("[工具调用] 修改文件"))
+                    .toList();
+
             //添加进chatMemory
-            for (ChatHistory chatHistory : chatHistoryList) {
+            for (ChatHistory chatHistory : filtedList) {
                 if (chatHistory.getMessageType().equals(ChatHistoryMessageTypeEnum.USER.getValue())) {
                     chatMemory.add(UserMessage.from(chatHistory.getMessage()));
                 } else if (chatHistory.getMessageType().equals(ChatHistoryMessageTypeEnum.AI.getValue())) {

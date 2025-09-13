@@ -53,11 +53,13 @@ public class JsonMessageStreamHandler {
                 .filter(StrUtil::isNotEmpty) // 过滤空字串
                 .doOnComplete(() -> {
                     // 流式响应完成后，添加 AI 消息到对话历史
+                    log.info("AI回复完成");
                     String aiResponse = chatHistoryStringBuilder.toString();
                     chatHistoryService.addChatMessage(appId, loginUser.getId(), aiResponse, ChatHistoryMessageTypeEnum.AI.getValue());
                 })
                 .doOnError(error -> {
                     // 如果AI回复失败，也要记录错误消息
+                    log.info("AI回复失败: {}", error.getMessage());
                     String errorMessage = "AI回复失败: " + error.getMessage();
                     chatHistoryService.addChatMessage(appId, loginUser.getId(), errorMessage, ChatHistoryMessageTypeEnum.AI.getValue());
                 });
@@ -107,6 +109,10 @@ public class JsonMessageStreamHandler {
 
                 // 调用工具执行方法获取调用工具输出
                 String result = tool.generateToolExecuteRequest(jsonObject);
+
+                // 输出日志
+                log.info("{}", result.split("\n")[0]);
+
                 String output = String.format("\n\n%s\n\n", result);
                 chatHistoryStringBuilder.append(output);
                 return output;

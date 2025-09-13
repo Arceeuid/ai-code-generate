@@ -110,7 +110,8 @@ public class OpenAiStreamingResponseBuilder {
         }
 
         if (delta.toolCalls() != null) {
-            System.out.println("OLOLO " + delta.toolCalls()); // TODO
+//            减少重复打印无用日志
+//            System.out.println("OLOLO " + delta.toolCalls()); // TODO
 
             for (ToolCall toolCall : delta.toolCalls()) {
 

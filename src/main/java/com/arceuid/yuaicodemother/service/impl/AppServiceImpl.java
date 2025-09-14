@@ -237,17 +237,29 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 应用名称暂时为 initPrompt 前 12 位
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
 
-        //获取应用类型
-        AICodeGenTypeRouterService aiCodeGenTypeRouterService = aiCodeGenTypeRouterFactory.createAiCodeGenTypeRouterService();
-        CodeGenTypeEnum selectCodeGenTypeEnum = aiCodeGenTypeRouterService.routeCodeGenType(initPrompt);
-        app.setCodeGenType(selectCodeGenTypeEnum.getValue());
+        //异步获取应用类型
+        Thread getRouteThread = Thread.startVirtualThread(() -> {
+            AICodeGenTypeRouterService aiCodeGenTypeRouterService = aiCodeGenTypeRouterFactory.createAiCodeGenTypeRouterService();
+            CodeGenTypeEnum selectCodeGenTypeEnum = aiCodeGenTypeRouterService.routeCodeGenType(initPrompt);
+            app.setCodeGenType(selectCodeGenTypeEnum.getValue());
+        });
+        //异步获取应用名称
+        Thread getNameThread = Thread.startVirtualThread(() -> {
+            AppNameResult appNameResult = generateAppName(initPrompt);
+            app.setAppName(appNameResult.getAppName());
+        });
+
+        // 等待获取应用类型和应用名称的线程执行完成
+        try {
+            getRouteThread.join();
+            getNameThread.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
         // 插入数据库
         boolean result = save(app);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-
-        // 异步生成并更新应用名称
-        generateAndUpdateAppName(app.getId());
 
         //返回应用id
         return app.getId();
@@ -353,27 +365,19 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 生成应用名称并更新应用信息
+     * 生成应用名称
      *
-     * @param appId 应用 id
+     * @param initPrompt 应用初始化的 prompt
+     * @return 应用名称结果
      */
     @Override
-    public void generateAndUpdateAppName(Long appId) {
-        App app = getById(appId);
-        if (app == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+    public AppNameResult generateAppName(String initPrompt) {
+        try {
+            return aiCodeGeneratorFacade.generateAppName(initPrompt);
+        } catch (Exception e) {
+            log.error("生成应用名称失败，initPrompt: {}", initPrompt, e);
         }
-        //开启虚拟线程异步获取应用名称并保存到数据库
-        Thread.startVirtualThread(() -> {
-            try {  // 异常捕获
-                AppNameResult appNameResult = aiCodeGeneratorFacade.generateAppName(app.getInitPrompt());
-                app.setAppName(appNameResult.getAppName());
-                boolean updateSuccess = updateById(app);
-                ThrowUtils.throwIf(!updateSuccess, ErrorCode.OPERATION_ERROR, "更新应用信息失败");
-            } catch (Exception e) {  // 捕获所有可能的异常
-                log.error("生成应用名称失败，appId: {}", appId, e);  // 记录异常日志便于排查
-            }
-        });
+        return null;
     }
 
     @Override

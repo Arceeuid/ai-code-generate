@@ -1,5 +1,6 @@
 package com.arceuid.yuaicodemother.service;
 
+import com.arceuid.yuaicodemother.ai.model.AppNameResult;
 import com.arceuid.yuaicodemother.model.dto.app.AppAddRequest;
 import com.arceuid.yuaicodemother.model.dto.app.AppQueryRequest;
 import com.arceuid.yuaicodemother.model.entity.App;
@@ -84,8 +85,9 @@ public interface AppService extends IService<App> {
      * 生成并更新应用名称
      *
      * @param appId 应用 id
+     * @return
      */
-    void generateAndUpdateAppName(Long appId);
+    AppNameResult generateAppName(String initPrompt);
 
     /**
      * 删除应用

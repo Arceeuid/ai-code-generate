@@ -24,6 +24,8 @@ import com.arceuid.yuaicodemother.model.enums.ChatHistoryMessageTypeEnum;
 import com.arceuid.yuaicodemother.model.enums.CodeGenTypeEnum;
 import com.arceuid.yuaicodemother.model.vo.AppVO;
 import com.arceuid.yuaicodemother.model.vo.UserVO;
+import com.arceuid.yuaicodemother.monitor.MonitorContext;
+import com.arceuid.yuaicodemother.monitor.MonitorContextHolder;
 import com.arceuid.yuaicodemother.service.AppService;
 import com.arceuid.yuaicodemother.service.ChatHistoryService;
 import com.arceuid.yuaicodemother.service.ScreenShotService;
@@ -114,9 +116,20 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         //5.保存用户消息到数据库
         chatHistoryService.addChatMessage(appId, loginUser.getId(), message, ChatHistoryMessageTypeEnum.USER.getValue());
 
-        //6.生成并收集AI返回的代码流
+        //6.保存应用上下文，用于记录应用相关信息
+        MonitorContextHolder.setContext(MonitorContext.builder()
+                .userId(loginUser.getId().toString())
+                .appId(appId.toString())
+                .build());
+
+        //7.生成并收集AI返回的代码流
         Flux<String> contentFlux = aiCodeGeneratorFacade.generateAndSaveStream(message, codeGenTypeEnum, appId);
-        return streamHandlerExecutor.doExecute(contentFlux, chatHistoryService, appId, loginUser, codeGenTypeEnum);
+        return streamHandlerExecutor.doExecute(contentFlux, chatHistoryService, appId, loginUser, codeGenTypeEnum)
+                .doFinally(signalType -> {
+                    //流结束时清理上下文
+                    MonitorContextHolder.clearContext();
+                    log.info("应用{}代码流结束", app.getId());
+                });
 
     }
 
